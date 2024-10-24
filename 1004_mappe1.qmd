@@ -1,0 +1,591 @@
+---
+title: "SOK-1004, høst 2024, Mappeoppgave"
+author: "[9] og [40]"
+format: pdf
+echo: false
+output: true
+editor: visual
+warning: false
+---
+
+```{r}
+# Library
+
+library(rsdmx)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(ineq)
+library(scales)
+library(ggrepel)
+library(eurostat)
+
+```
+
+## Oppgave 1
+
+```{r}
+# Laster inn URL med riktig filtrering
+
+rm(list=ls())
+
+url <- "https://sdmx.oecd.org/public/rest/data/OECD.WISE.INE,DSD_WISE_IDD@DF_IDD,/NOR.A.INC_GROSS_GINI+INC_MRKT_GINI+D9_1_INC_DISP+INC_DISP_GINI....METH2012.D_CUR.?startPeriod=2015&endPeriod=2023&dimensionAtObservation=AllDimensions"
+
+data <- readSDMX(url)
+
+df <- as_tibble(data)
+
+```
+
+```{r}
+# Gir nye navn til kolonner i datasettet
+
+df <- df %>% 
+  rename(tidsperiode = TIME_PERIOD) %>% 
+  rename(land = REF_AREA) %>% 
+  rename(mål = MEASURE) %>% 
+  rename(alder = AGE)
+
+```
+
+```{r}
+# Plotter figur som viser tre mål på Gini og tre aldersgrupper
+
+gini_data <- df %>%
+  filter(mål %in% c("INC_GROSS_GINI", "INC_DISP_GINI",  
+  "INC_MRKT_GINI")) 
+
+gini_data %>% 
+  ggplot(aes(x = tidsperiode, y = obsValue, color = mål, group = mål)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~ alder, 
+             labeller = labeller(alder = c("_T" = "Alle", 
+                                           "Y18T65" = "18 til 65",
+                                           "Y_GT65" = "Over 65")
+                                            )) +
+  labs(title = "Gini-indekser over tid",
+       x = "År",
+       y = "Gini indeks",
+       color = "") +
+   scale_color_manual(values = c("INC_GROSS_GINI" = "orange", 
+                                "INC_DISP_GINI" = "lightblue", 
+                                "INC_MRKT_GINI" = "pink"),
+                      labels = c("INC_GROSS_GINI" = "Bruttoinntekt Gini", 
+                                "INC_DISP_GINI" = "Disponibel Inntekt Gini", 
+                                "INC_MRKT_GINI" = "Markedsinntekt Gini")) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom") 
+
+
+```
+
+```{r}
+# Plotter figur som viser verdien for P90/P10 over tid
+
+P90P10_data <- df %>% 
+  filter(mål %in% "D9_1_INC_DISP")
+
+P90P10_data %>% 
+  ggplot(aes(x = tidsperiode, y = obsValue, color = alder, group = alder)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Verdien for P90/P10 over tid",
+       x = "År",
+       y = "Verdien for P90/P10",
+       color = "") +
+  scale_color_manual(values = c(
+    "_T" = "blue", "Y18T65" = "green", "Y_GT65" = "red"),
+                     labels = c(
+    "_T" = "Alle aldre", "Y18T65" = "18-65 år", "Y_GT65" = "Over 65 år")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom")
+
+
+```
+
+Svar på oppgave 1:
+
+Over har vi to figurer som har for formål å illustrere økonomisk ulikhet i Norge ved hjelp av to forskjellige mål, den første er gini indeks og den andre er P90/P10. Gini indeks (eller Gini-koeffsient) er en av de mest brukte metodene å måle inntektsulikhet på. Det måler rett og slett hvor likt eller ulikt inntekten i et land er fordelt på på en skala fra 0 til 1. 0 er fullstendig likhet (hele landets inntekt er fordelt helt likt mellom befolkningen) og 1 er fullstendig ulikhet (én person har all inntekten)(Epland & Tuv, 2019). Den første figuren viser også tre forskjellige mål for gini, nemlig markedsinntekt Gini, bruttoinntekt Gini og disponibel inntekt Gini. Markedsinntekt Gini måler inntektsulikhet før noen overføringer eller skatter er trukket fra, brutto-gini måler inntektsulikhet når overføringer (f. eks trygd, pensjon osv.) er lagt til, og disponibel gini måler inntektsulikhet når både overføringer er lagt til og skatter er trukket fra. Det første panelet viser gini målt mot hele befolkningen, det andre panelet måler for alle over 65 og det siste viser for alle mellom 18 og 65. Her er mål tatt for årene 2015 til 2022.
+
+Den andre figuren viser som nevnt inntektsulikhet målt etter P90/P10. Formålet med å måle inntektsulikhet ved hjelp av P90/P10 er å skille ut de som tjener aller mest og aller minst, og se hvor stor forskjellen er mellom dem. Det gjøres ved å dele befolkningen inn i ti like store grupper ut ifra inntekt etter at skatt er trukket fra. P90/P10 ser da på hvor mange ganger større en person i den 90. percentilen sin inntekt er enn en i den 10. percentilen (Epland & Tuv, 2019). Som den første figuren viser den målene tatt mellom 2015 og 2022, og den viser observasjoner tatt for alle aldere, alder 65 og eldre, og alder mellom 18 og 65.
+
+På figuren som viser inntektsulikhet målt etter Gini indeks ser vi at ulikheten har holdt seg veldig jevn med unntak av i 2021 der ulikheten økte. Dette kan være på grunn av korona-pandemien som hadde store konsekvenser for økonomien i landet. Nedstengningene førte til at mange bedrifter måtte holde stengt og mange personer ble permittert. Dette støttes av at ulikheten blir mindre igjen i 2022, da samfunnet i større grad kunne åpnes opp igjen.
+
+Når vi ser på de tre Gini-målene, ser vi at markedsinntekt Gini har høyere verdier enn de to andre. Dette er forventet, siden markedsinntekt Gini måler ulikhet før skatter trekkes fra. Dette illustrerer skattesystemets evne til å redusere økonomisk ulikhet. Deretter følger brutto-Gini, som ligger lavere, noe som viser hvordan offentlige ytelser som trygd og pensjon også bidrar til mindre inntektsforskjeller. Nederst finner vi disponibel-Gini, som viser inntektsulikheten etter at både skatter og overføringer er tatt i betraktning. De tre målene for Gini viser oss hvordan faktorer som skatter og trygd påvirker økonomisk uliket.
+
+Vi observerer at det er forskjeller mellom aldersgruppene, der spesielt aldergruppen 65+ skiller seg ut. De ligger betraktelig høyere på markedsinntekt Gini og litt under på disponibel- og brutto-Gini. At de ligger høyere på markedsinntekt Gini kan forklares ved at markedsinntekt Gini tar med all inntekt og kapital før noen form for statlige omfordelingstiltak spiller inn. Folk over 65 vil ha hatt lang tid på å tjene inn kapital, i tillegg til at de gjerne har aksjer og en bolig de eier. I aldersgruppen 18 til 65 ser vi at forskjellene mellom Gini-målene er mindre enn hos 65+, noe som viser at det er mindre ulikhet i denne gruppa. Det kan det være flere grunner til. Folk på en alder fra 18-65 er i stor grad i arbeid og Norge har mindre ulikhet i lønning mellom forskjellige jobber i forhold til andre land (FN-sambandet, 2023). Det er sannsynlig den yngre andelen av denne aldergruppen som sørger for at de ligger lenger ned på aksen ettersom at de rett og slett ikke har rukket å tjene så mye enda Mulige investeringer har ikke rukket å gi betydelig avkastning enda, de har ofte ikke råd til å kjøpe bolig enda så de er nødt til å leie og de har ikke rukket å tjene opp særlig med ansinnitet i jobben.
+
+En stor grunn til at Norge har lav inntektsulikhet er på grunn av våre statlige institusjoner, som skatte- og pensjonssystemet. Vi har generelt høyere skatt enn de fleste andre land, i tillegg til at skattesystemet fungerer slik at du må betale høyere prosentandel skatt jo høyere inntekt du har, noe som fører til en større grad av omfordeling av goder (Skatteetaten, n.d.). Disse skatteinntektene går blant annet til å betale for trygder, offentlige skole-tilbud og gratis helsetjeneste. I Norge har også alle rett på til en grunnpensjon fra folketrygden som skal sikre at alle eldre har en minimumsinntekt, uansett va de tjente da de var i arbeidslivet (NAV, 2024). Sosiale velferdsordninger som boligstøtte og sosialhjelp til folk med lav inntekt er også med på å utjevne ulikheter mellom folk med ulik inntekt.
+
+Figuren for P90/P10 gir oss et litt annet bilde enn Gini indeksene. Her ser vi at det er høyest grad av ulikhet mellom mellom de som tjener mest og minst blant folk i aldersgruppen 18-65, der de som tjener mest tjener i overkant av 3,25 ganger så mye som de som tjener minst. Aldersgruppen for de som er 65+ legger seg lavere, med en P90/P10 på ca. 2,60. Dette kan det være flere grunner til. Blant annet så er det stor forskjell på hva en 18-åring med en deltidsjobb ved siden av et studie tjener, i forhold til en person som har vært i arbeidslivet i 30 år og jobbet seg opp i karrierestigen. I tillegg er det forskjeller i lønn ut ifra hvilket yrke du jobber i, for eksempel hvis du ser på lønnen til en barneskolelærer i forhold til lønnen til en ingeniør. Gruppen for folk som er over 65 år omfatter derimot for det meste pensjonister. Pensjonister får som tidligere nevnt en grunnpensjon fra staten, og de har en begrenset evne til å øke inntekten sin siden de ikke er i arbeid, som er med på å sørge for at det er mindre ulikhet mellom dem.
+
+Vi har nå analysert inntektsulikhet mellom aldersgrupper og mulige årsaker til hvorfor disse forskjellene oppstår. Dog, om vi skulle ønske å danne oss et bilde på ulikhet og yrkesstatus ville vi nok ønsket å hente inn mere data. Vi har allerede sett på forskjellene blant disse gruppene som omfatter folk som typisk er i arbeid (18-65) og de som typisk ikke lenger er i arbeid (65+). Likevel ville vi nok ønsket å se på mere data enn dette. Dataene vi allerede har sier blant annet ikke noe om nettop yrkesstatus. Aldersgruppen 18-65 omfatter veldig mange mennesker som er i forskjellige livssituasjoner som kan påvirke inntekten deres drastisk. Derfor bør vi ha data på om folk er i arbeid, arbeidsledige eller ikke-yrkesaktive (pensjonister, uføretrygdede osv.).
+
+KI til oppgave 1
+
+Jeg brukte ChatGPT til å:
+
+-   Vise meg hvordan jeg gir nytt navn til kolonner i et datasett
+
+-   Finne ut hvordan jeg kunne bruke facet_wrap til å dele et plott inn i tre paneler, finne ut hvordan jeg kunne endre på titler inne i panelene
+
+-   Finne ut hvordan jeg gir nye navn til aldergruppene
+
+-   Finne ut hvordan jeg vinkler verdiene langs x-aksen slik at de er leselige
+
+## Oppgave 2
+
+```{r warning=FALSE, message=FALSE}
+
+#Henter data fra eurostat, og gjør dataen leselig
+
+livs_kval <- get_eurostat("ilc_pw01") 
+
+livs_kval <-  livs_kval %>% 
+  label_eurostat() 
+
+```
+
+```{r}
+
+#Filtrerer datasettet til å kun inneholde land og livskvalitet i 2022
+
+livs_kval_22 <- livs_kval %>% 
+  filter(sex == "Total" &
+           TIME_PERIOD == "2022-01-01" &
+           age == "16 years or over" &
+           isced11 == "All ISCED 2011 levels" &
+           geo != "European Union - 27 countries (from 2020)") %>% 
+  rename("livskvalitet" = values) %>% 
+  select(geo, livskvalitet)
+```
+
+### 2a
+
+```{r}
+
+#Henter data fra eurostat, og gjør dataen leselig
+
+gini_koef <- get_eurostat("ilc_di12")
+
+bnp_per_pers <- get_eurostat("nama_10_pc")
+
+gini_koef <- gini_koef %>% 
+  label_eurostat()
+
+bnp_per_pers <- bnp_per_pers %>% 
+  label_eurostat()
+```
+
+```{r}
+
+
+#Filtrerer datasettet til å kun inneholde land og gini-koeffisient i 2022
+
+gini_koef_22 <- gini_koef %>% 
+   filter(TIME_PERIOD == "2022-01-01",
+          age == "Total",
+          geo != "European Union - 27 countries (from 2020)") %>% 
+  rename("Gini_koeffisient" = values) %>% 
+  select(geo, "Gini_koeffisient")
+
+#Filtrerer datasettet til å kun inneholde land og BNP per person i 2022
+
+bnp_per_pers_22 <- bnp_per_pers %>% 
+  filter(TIME_PERIOD == "2022-01-01",
+         unit == "Current prices, purchasing power standard (PPS, EU27 from 2020) per capita",
+         na_item == "Gross domestic product at market prices",
+          geo != "European Union - 27 countries (from 2020)") %>% 
+  rename("BNP_per_person" = values) %>% 
+  select(geo, "BNP_per_person")
+         
+#Setter BNP per person, gini-koeffisienten og livskvalitet inn i ett datasett
+
+kombinert_data <- inner_join(bnp_per_pers_22, gini_koef_22, by = "geo")
+kombinert_data <- inner_join(kombinert_data, livs_kval_22, by = "geo")
+
+```
+
+Forklar nøye hva tallene i datasettet representerer, og hvordan de er målt.
+
+Det nye datasettet "kombinert_data" inneholder målinger av livskvalitet, BNP per person, og Gini koeffisienten til 30 land i Europa, der dataene er hentet fra 2022.
+
+BNP per person viser verdien av varer og tjenester et land produserer fordelt ut på antall innbyggere. I dette tilfellet viser datasettet årlig BNP per person i Euro. Dette kan for eksempel brukes til å vurdere levestandarden i et land. Et høy BNP vil vanligvis indikere høyere levestandard og livskvalitet.
+
+Gini koeffisienten viser hvordan økonomiske ressurser er fordelt i et land. Altså hvor mye inntektsulikhet et land har. I vårt datasett er gini koeffisienten rangert fra 0 - 100. Hvis den er 0 er all inntekt helt likt fordelt på befolkningen, mens om den er 100 har en person alt og resten ingenting.
+
+Livskvalitet i datasettet viser landets vurdering av livskvalitet. I vårt tilfelle er den rangert fra 0-10. Dette kan være basert på forskjellige faktorer som utdanning, helse, økonomi og sikkerhet. Et land med en høy verdi vil oppleve livskvaliteten som bedre enn land med lav verdi.
+
+### 2b
+
+Lag to pene figurer. I den ene plotter du bnp per capita mot livskvalitet, og i den andre Gini mot livskvalitet. Merk gjerne punktene i figuren med landnavn. Her kan R-pakken [ggrepel](https://cran.r-project.org/web/packages/ggrepel/vignettes/ggrepel.html) være nyttig. Bruk `geom_smooth(method = lm, se = FALSE)` for å se om det er en sammengeng i mellom variablene.
+
+```{r}
+#Figur 1, plotter et scatterplot med livskvalitet og BNP per person
+
+kombinert_data %>% 
+  
+  slice(-8) %>% 
+  
+  ggplot(aes(x = livskvalitet, y = BNP_per_person)) +
+  
+  geom_point() +
+  
+  geom_smooth(method = lm, se = FALSE) +
+  
+  geom_text_repel(aes(label = geo),max.overlaps = 30) +
+  
+  labs(y = "Årlig BNP per person (EURO)", 
+       x = "Livskvalitet rangert fra 1 - 10", 
+       title = "Sammenhengen mellom BNP per person og livskvalitet i europeiske land", subtitle = "År 2022") +
+  
+  theme_minimal() +
+  
+  theme(plot.title = element_text(face = "bold"))
+```
+
+```{r}
+#Figur 2, plotter et scatterplot med livskvalitet og gini-koeffisient
+
+kombinert_data %>% 
+  
+  slice(-8) %>% 
+  
+  ggplot(aes(x = livskvalitet, y = Gini_koeffisient)) +
+  
+  geom_point() +
+  
+  geom_smooth(method = lm, se = FALSE) +
+  
+  geom_text_repel(aes(label = geo), max.overlaps = 30) +
+  
+  labs(y = "Gini-koeffisient (0-100)", 
+       x = "Livskvalitet rangert fra 1 - 10", 
+       title = "Sammenhengen mellom Gini-koeffisient og livskvalitet i europeiske land", subtitle = "År 2022") +
+  
+  theme_minimal() +
+  
+  theme(plot.title = element_text(face = "bold"))
+```
+
+### 2c
+
+Forklar figurene fra 2b nøye. Hva kan vi si (og ikke si) om sammenhengen mellom livskvalitet og inntekt og livskvalitet og inntektsulikhet. Hvordan kan dine funn forklares?
+
+Figur 1 viser sammenhengen mellom brutto nasjonalprodukt per person og livskvalitet for europeiske land i 2022. X-aksen representerer landenes rangering av livskvalitet, mens Y-aksen viser årlig BNP per person i Euro. Den blå regresjonslinjen viser en slakk, men positiv trend. Dette understreker at det kan være en sammenheng mellom BNP per person og livskvalitet. Land som Norge, Irland og Luxemburg har veldig høyt BNP per person, og dermed også høy livskvalitet. I andre enden har vi land som Tyrkia, Bulgaria og Serbia. De har et lavere BNP per person, og derfor også lavere livskvalitet.
+
+Fra figur 1 ser vi at det finnes en sammenheng mellom høyt BNP per person og høy livskvalitet. Med unntak av Tyskland har alle land med over 40 000 Euro rangert livskvaliteten i sitt land over 7. Et høyt BNP per person kan bety at innbyggere har bedre tilgang på utdanning, helsetjenester, større økonomisk frihet og andre goder. Rike land har også ofte bedre midler til forskning og utvikling av landet. Disse fordelene kan føre til generelt bedre levestandard og høyere livskvalitet.
+
+Vi kan derimot ikke si at BNP per person direkte fører til høyere livskvalitet. Det er mange faktorer som spiller inn på livskvaliteten til et land. Derfor gir ikke BNP per person alene et helhetlig inntrykk på livskvalitet. Arbeidsforhold, helsetjenester, generell levestandard og politikk er noen få faktorer som kan påvirke livskvaliteten uavhengig av BNP per person. Derfor ser vi tilfeller der land har høy livskvalitet, men et lavere BNP og motsatt.
+
+Figur 2 viser livskvaliteten til de samme landene sammenlignet med gini-koeffisienten deres i 2022. Y-aksen i denne figuren representerer gini-koeffisienten. Den blå regresjonslinjen viser en tydelig negativ trend. Dette beviser at land med høy inntektsulikhet stort sett har dårligere livskvalitet. Sammenlignet med figur 1 ser vi gjengangere som Tyrkia og Bulgaria. Disse landene har lavere BNP per person og høy inntektsulikhet. Dette kan bety at kombinasjonen av stor ulikhet og lavt BNP leder til lavere livskvalitet.
+
+Vi kan se at det finnes en sammenheng mellom gini-koeffisienten og livskvalitet. Alle landene med en gini-koeffisient på under 25 har rangert livskvaliteten på 7 eller over. Land som Slovenia og Slovakia har relativt høy livskvalitet og lav inntektsulikhet. Samtidig har de et lavete BNP per person. Dette kan bety at land med mer rettferdig fordelt økonomi kan ha høy livskvalitet selv om de ikke har et høyt BNP per person.
+
+Noe figurene ikke forteller oss er hvem, og hvor mange som har deltatt i rangeringen av livskvalitet. Livskvalitet er individuelt og kan for eksempel variere veldig mellom eldre og unge mennesker. I flere tilfeller kan landets politikk spille en stor rolle i hvilke aldersgrupper som har det best. I USA og Canada er det stor forskjell mellom rangeringen av livskvalitet mellom eldre og unge. Innbyggere over 60 år er mer fornøyd med livskvaliteten enn de yngre. (Helliwell, Huang, Wang, Shiplett: 2024) Dette kan bety at deres politikk er i de eldre sin favør.
+
+Det finnes mange faktorer som kan påvirke lykke uavhengig av inntekt. Kvalitet til helsetjenester, utdanning, sikkerhet og miljø er viktige faktorer. En av de aller viktigste faktorene til god livskvalitet er et godt helsevesen. God helse er grunnleggende for å kunne leve et godt og lykkelig liv. Miljøfaktorer som tilgang på skogsområder og parker, ren luft, og lav kriminalitet er også faktorer som kan bidra til bedre livskvalitet. Om innbyggerne er friske og føler seg trygge i landet sitt vil livskvaliteten sannsynligvis øke.
+
+Disse faktorene følger nødvendigvis ikke trendene i spredningsplottene. Faktorene er grunnen til at livskvaliteten blir påvirket når man ser bort i fra trendene. For eksempel kan et land med et høyt BNP per person med dårlige helsetjenester og utdanning ha lavere livskvalitet enn forventet.
+
+KI til oppgave 1
+
+ChatGPT brukt til:
+
+-   Feilsøking ved feil i koden
+
+## Oppgave 3
+
+### 3.1
+
+```{r}
+# Laster inn url og gjør det til et datasett
+
+url <- "https://raw.githubusercontent.com/uit-sok-1004-h24/uit-sok-1004-h24.github.io/main/data/skatt_troms_2015.RDS"
+
+skatt_troms_2015 <- url %>%
+  url() %>%
+  gzcon() %>% 
+  readRDS()
+
+```
+
+```{r}
+# 1
+# Lager en ny variabel som viser inntekt etter skatt + fjerner negative verdier
+
+skatt_troms_2015 <- skatt_troms_2015 %>% 
+  mutate(inntekt_etter_skatt = inntekt - skatt) %>% 
+  filter(inntekt_etter_skatt >= 0)
+
+```
+
+Grunnen til at vi velger å filtrere bort verdier som er lik 0 og lavere er fordi det vil gi et misledende resultat når vi regner ut Gini. Vi kan få negative verdier dersom noen i datasettet for eksempel har høye lån eller tap av aksjer, men det betyr ikke at disse personene ikke har fått inn penger. Å ha verdier på 0 og lavere vil altså få forskjellene til å se ut som at de er større enn det de egentlig er.
+
+### 3.2
+
+```{r}
+# Legger til en kolonne i datasettet som har navn på kommunene
+
+kommune_info <- data.frame (
+  kommnr = c(1901, 1902, 1903, 1911, 1912, 1913, 1914, 1915, 1916, 1917, 1918, 1919, 1920, 1921, 1922, 1923,
+                    1924, 1925, 1926, 1927, 1928, 1929, 1930, 1931, 1932, 1933, 1934, 1935, 1936, 1937, 1938,
+                    1939, 1940, 1941, 1942, 1943),
+  kommunenavn = c("Harstad", "Tromsø", "Harstad", "Kvæfjord", "Sandtorg", 
+                  "Skånland", "Trondenes", "Sand, Bjarkøy", "Andørja", "Ibestad", 
+                  "Astafjord", "Gratangen", "Lavangen", "Salangen", "Bardu", 
+                  "Øverbygd", "Målselv", "Sørreisa", "Dyrøy", "Tranøy",
+                  "Torsken", "Berg", "Hillesøy", "Lenvik", "Malangen", "Balsfjord", "Tromsøysund", "Helgøy", "Karlsøy", "Ullsfjord", "Lyngen", "Storfjord", "Kåfjord", "Skjervøy", "Nordreisa", "Kvænangen")
+)
+
+skatt_troms_2015 <- skatt_troms_2015 %>% 
+  left_join(kommune_info, by = "kommnr")
+
+```
+
+```{r}
+# Plotter figur for gjennomsnittlig formue i Troms fylke
+
+stats <- skatt_troms_2015 %>% 
+  group_by(kommunenavn) %>% 
+  summarise(
+    mean_formue = mean(formue, na.rm = TRUE),
+    mean_inntekt = mean(inntekt, na.rm = TRUE),
+    inntekt_etter_skatt = mean(inntekt_etter_skatt, na.rm = TRUE),
+    mean_skatt = mean(skatt, na.rm = TRUE)
+  )
+
+stats %>% 
+  ggplot(aes(x = kommunenavn, y = mean_formue)) +
+  geom_col(stat = "identity", fill = "lightblue") +
+    scale_y_continuous(labels = label_comma()) +  
+   labs(title = "Gjennomsnittlig formue i kommunene i Troms fylke",
+        subtitle = "Målt i 2015",
+       x = "Kommune",
+       y = "Gjennomsnittlig formue i NOK") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+# Plotter figur for gjennomsnittlig inntekt i Troms fylke
+
+stats %>% 
+  ggplot(aes(x = kommunenavn, y = mean_inntekt)) +
+  geom_col(stat = "identity", fill = "lightblue") +
+    scale_y_continuous(labels = label_comma()) +  
+   labs(title = "Gjennomsnittlig inntekt i kommunene i Troms fylke",
+        subtitle = "Målt i 2015",
+       x = "Kommune",
+       y = "Gjennomsnittlig inntekt i NOK") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom")
+
+```
+
+```{r}
+# Plotter figur for gjennomsnittlig inntekt etter skatt i Troms fylke
+
+stats %>% 
+  ggplot(aes(x = kommunenavn, y = inntekt_etter_skatt)) +
+  geom_col(stat = "identity", fill = "lightblue") +
+    scale_y_continuous(labels = label_comma()) +  
+   labs(title = "Gjennomsnittlig inntekt etter skatt i kommunene i Troms fylke", 
+      subtitle = "Målt i 2015",
+       x = "Kommune",
+       y = "Gjennomsnittlig inntekt etter skatt i NOK") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom")
+
+```
+
+```{r}
+# Plotter figur for gjennomsnittlig skatt betalt i Troms fylke
+
+stats %>% 
+  ggplot(aes(x = kommunenavn, y = mean_skatt)) +
+  geom_col(stat = "identity", fill = "lightblue") +
+    scale_y_continuous(labels = label_comma()) +  
+   labs(title = "Gjennomsnittlig skatt betalt i kommunene i Troms fylke",
+        subtitle = "Målt i 2015",
+       x = "Kommune",
+       y = "Gjennomsnittlig skatt betalt i NOK") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom")
+
+
+```
+
+```{r}
+# Plotter figur for median formue i Troms fylke
+
+stats_median <- skatt_troms_2015 %>% 
+  group_by(kommunenavn) %>% 
+  summarize(
+    median_formue = median(formue, na.rm = TRUE),
+    median_inntekt = median(inntekt, na.rm = TRUE),
+    median_inntekt_etter_skatt = median(inntekt_etter_skatt, na.rm = TRUE),
+    median_skatt = median(skatt, na.rm = TRUE))
+
+
+stats_median %>% 
+  ggplot(aes(x = kommunenavn, y = median_formue)) +
+  geom_col(stat = "identity", fill = "darkblue") +
+    scale_y_continuous(labels = label_comma()) +  
+   labs(title = "Median formue i kommunene i Troms fylke",
+        subtitle = "Målt i 2015",
+       x = "Kommune",
+       y = "Median formue i NOK") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom")
+
+```
+
+```{r}
+# Plotter figur for median inntekt i Troms fylke
+
+stats_median %>% 
+  ggplot(aes(x = kommunenavn, y = median_inntekt)) +
+  geom_col(stat = "identity", fill = "darkblue") +
+    scale_y_continuous(labels = label_comma()) +  
+   labs(title = "Median inntekt i kommunene i Troms fylke",
+        subtitle = "Målt i 2015",
+       x = "Kommune",
+       y = "Median inntekt i NOK") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom")
+
+```
+
+```{r}
+# Plotter figur for median inntekt etter skatt i Troms fylke
+
+stats_median %>% 
+  ggplot(aes(x = kommunenavn, y = median_inntekt_etter_skatt)) +
+  geom_col(stat = "identity", fill = "darkblue") +
+    scale_y_continuous(labels = label_comma()) +  
+   labs(title = "Median inntekt etter skatt i kommunene i Troms fylke",
+        subtitle = "Målt i 2015",
+       x = "Kommune",
+       y = "Median inntekt etter skatt i NOK") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+# Plotter figur for median skatt betalt i Troms fylke
+
+stats_median %>% 
+  ggplot(aes(x = kommunenavn, y = median_skatt)) +
+  geom_col(stat = "identity", fill = "darkblue") +
+    scale_y_continuous(labels = label_comma()) +  
+   labs(title = "Median skatt betalt i kommunene i Troms fylke",
+        subtitle = "Målt i 2015",
+       x = "Kommune",
+       y = "Median skatt betalt i NOK") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)) +
+  theme(legend.position = "bottom")
+```
+
+Over har vi åtte figurer som visualiserer data om den økonomiske tilstanden i de forskjellige kommunenene i Troms fylke. Vi har fire figurer som viser gjennomsnittet og fire som viser median. Disse viser hver for seg gjennomsnitt eller median for formue, inntekt, inntekt etter skatt og skatt betalt i kommunene. På x-aksen kan vi lese kommunene og på y-aksen kan vi lese av kommunenes formue/inntekt/skatt i norske kroner. Datasettet er fra 2015 og kommunene/kommunetallene er da også fra dette året.
+
+### 3.3
+
+```{r}
+# Plotter figur for Gini før og etter skatt
+
+
+gini_troms_2015 <- skatt_troms_2015 %>% 
+  group_by(kommunenavn) %>%
+  summarise(gini_fskatt = Gini(inntekt), 
+            gini_eskatt = Gini(inntekt_etter_skatt)) %>% 
+  pivot_longer(cols = c(gini_fskatt, gini_eskatt),
+               names_to = "type",
+               values_to = "value")
+
+
+gini_troms_2015 %>% 
+  ggplot(aes(fill = type, y = value, x = kommunenavn)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Kommune",
+       y = "Gini Indeks",
+       title = "Gini indeks for kommunene i Troms fylke",
+       subtitle = "Målt i 2015",
+       legend.position = "bottom") +
+    scale_fill_discrete(name = "", labels = c("Gini før skatt", "Gini etter skatt")) 
+  
+```
+
+### 3.4
+
+Dersom Troms fylkeskommune ønsker å få en jevnere inntektsfordeling for sine innbyggere er det flere tiltak de kan vurdere. Det første de kan vurdere er å øke skatten for de som tjener mest. Hvis de øker skatten til de som tjener over en hviss mengde vil det komme mere penger inn til fylkeskommunen, som de så kan fordele på andre tiltak. Det er da viktig å ikke øke skatten så mye at de som har høyest inntekt ender opp med å flytte, ettersom fylken da vil miste store inntekter.
+
+De kan også ta motsatt tilnærming og redusere skattene for å lokke flere til å flytte hit. Skulle de lykkes med å få mange nok til å etablere seg her skal det forhåpentligvis føre til at fylkeskommunen får inn nok penger fra skatt selvom hver person betaler en lavere prosentandel. Da kan de i tillegg redusere hvor mye trygd de utbetaler siden befolkningen får beholde større andel av inntekten sin.
+
+Noe annet de kan vurdere er å heve frikortgrensen slik at de som tjener under en hviss mengde slipper å betale skatt. Da kan de lette på utgiftene til de som allerede sliter med å få ting til å gå rundt, og muligens få gi ut mindre i trygder. Siden disse personene allerede tjener lite betyr det at fylket heller ikke går glipp av så alt for store summer.
+
+De kan også vurdere å skape insentiver for å få flere bedrifter til å etablere seg her oppe. Det er i dag mange nyutdannede som ender med å flytte til Oslo og andre byer fordi de mener at det er der de fleste jobbene er. Hvis fylkeskommunen skulle lykkes med å få flere bedrifter opp hit kunne de få færre fraflyttere, flere tilflyttere, og dermed også flere som betaler skatt som så kan fordeles videre.
+
+KI til oppgave 3
+
+Jeg brukte chatGPT til å:
+
+-   Filtrere ut verdier som er lik 0 eller lavere
+
+```{=html}
+<!-- -->
+```
+-   Legge til en kolonne med kommunenavn
+
+```{=html}
+<!-- -->
+```
+-   Regne ut median og gjennomsnitt til verdier i et datasett
+
+-   Bytte farge på bar-plottet
+
+-   Sørge for at tallene på y-aksen er hele tall i stedet for forkortelser
+
+-   Endre navn i plottet for å gjøre det mere leselig
+
+## Kildeliste:
+
+Epland, J., & Tuv, N. (2019, 9. mai). Slik måler SSB ulikhet. *Statistisk sentralbyrå*. <https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger/artikler/slik-maler-ssb-ulikhet>
+
+FN-sambandet. (2023, 18. september). *Mindre ulikhet*. FN. <https://fn.no/om-fn/fns-baerekraftsmaal/mindre-ulikhet>
+
+FN-sambandet. "*God helse og livskvalitet*.", 2024, [https://fn.no/om-fn/fns-baerekraftsmaal/god-helse-og-livskvalitethttps://fn.no/om-fn/fns-baerekraftsmaal/god-helse-og-livskvalitet](https://fn.no/om-fn/fns-baerekraftsmaal/god-helse-og-livskvalitet){.uri}
+
+John Helliwell, Haifang Huang, Hugh Shiplett, Shun Wang. "Happiness of the Younger, the Older, and Those in Between." *World Happiness Report*, 2024, <https://worldhappiness.report/ed/2024/happiness-of-the-younger-the-older-and-those-in-between/>
+
+Max Roser, Esteban Ortiz-Ospina, "*Happiness and life satisfaction*" Our World in Data 2024, <https://ourworldindata.org/happiness-and-life-satisfaction>
+
+NAV. (2024, 10. oktober). *Alderspensjon*. <https://www.nav.no/alderspensjon>
+
+Skatteetaten. (n.d.). **Dette må du skatte av i Norge**. Skatteetaten. Retrieved October 22, 2024, from <https://www.skatteetaten.no/person/utenlandsk/skal-du-arbeide-i-norge/skattemeldingen/dette-ma-du-skatte-av-i-norge/> hentet 22.10.2024
+
+Lenke til ChatGPT (oppgave 1 og 3) : <https://chatgpt.com/c/671553a1-68e0-800c-a35d-7b162451c5f5>
+
+Lenke til ChatGPT (oppgave 2) : <https://chatgpt.com/c/670e49aa-2eb4-800f-a709-5cf4c5f12906>
